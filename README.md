@@ -1,5 +1,7 @@
 # gm_mcp
 
+[![Build](https://github.com/unknown-gd/gm_mcp/actions/workflows/build.yml/badge.svg)](https://github.com/unknown-gd/gm_mcp/actions/workflows/build.yml)
+
 MCP bridge for Garry's Mod — C++ server module + Node MCP server.
 
 Repository: https://github.com/unknown-gd/gm_mcp
