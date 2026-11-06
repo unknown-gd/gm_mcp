@@ -78,7 +78,7 @@ Published to GitHub Packages as [`@unknown-gd/gm-mcp`](https://github.com/unknow
 # Install from GitHub Packages
 echo "@unknown-gd:registry=https://npm.pkg.github.com" >> .npmrc
 # auth: //npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
-bun add -g @unknown-gd/gm-mcp
+bun add -g @unknown-gd/gm-mcp@next
 ```
 
 Local development:
@@ -100,7 +100,7 @@ Point your MCP client at the package or a local checkout:
 ```json
 {
   "command": "bunx",
-  "args": ["--registry=https://npm.pkg.github.com", "@unknown-gd/gm-mcp"]
+  "args": ["--registry=https://npm.pkg.github.com", "@unknown-gd/gm-mcp@next"]
 }
 ```
 

@@ -119,7 +119,7 @@ jobs:
             echo "@unknown-gd:registry=https://npm.pkg.github.com"
             echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}"
           } > .npmrc
-          bun publish --access public
+          bun publish --access public --tag next
 
   release:
     name: Publish release
