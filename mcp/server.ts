@@ -1,8 +1,6 @@
 #!/usr/bin/env bun
 
-import { realpathSync } from "node:fs";
 import { createConnection } from "node:net";
-import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -310,18 +308,9 @@ export async function main() {
   await createServer().connect(new StdioServerTransport());
 }
 
-if (process.argv[1]) {
-  try {
-    if (
-      realpathSync(process.argv[1]) ===
-      realpathSync(fileURLToPath(import.meta.url))
-    ) {
-      main().catch((cause) => {
-        console.error(cause);
-        process.exitCode = 1;
-      });
-    }
-  } catch {
-    // Entrypoint may be a temporary npm shim that has already disappeared.
-  }
+if (import.meta.main) {
+  main().catch((cause) => {
+    console.error(cause);
+    process.exitCode = 1;
+  });
 }

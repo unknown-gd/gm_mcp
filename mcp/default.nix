@@ -9,7 +9,7 @@
 let
   src = lib.cleanSource ./.;
 
-  # Offline-friendly install of node_modules from bun.lock.
+  # Offline-friendly install of node_modules from bun.lock (build-time only).
   nodeModules = stdenvNoCC.mkDerivation {
     name = "gm-mcp-node-modules";
     inherit src;
@@ -68,10 +68,9 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     runHook preInstall
     mkdir -p $out/lib/gm-mcp $out/bin
-    cp -R dist package.json ${nodeModules}/node_modules $out/lib/gm-mcp/
+    cp -R dist package.json $out/lib/gm-mcp/
     makeWrapper ${lib.getExe bun} $out/bin/gm-mcp \
-      --chdir "$out/lib/gm-mcp" \
-      --add-flags "run ./dist/server.js"
+      --add-flags "$out/lib/gm-mcp/dist/server.js"
     runHook postInstall
   '';
 

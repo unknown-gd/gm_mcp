@@ -1,6 +1,6 @@
 # gm_mcp
 
-MCP bridge for Garry's Mod — C++ server module + Node MCP server.
+MCP bridge for Garry's Mod — C++ server module + Bun MCP server.
 
 Repository: https://github.com/unknown-gd/gm_mcp
 
@@ -8,10 +8,10 @@ Inspired by [mathis1M/gmod-mcp](https://github.com/mathis1M/gmod-mcp), rewritten
 
 ## Layout
 
-| Path      | Role                                                                  |
-| --------- | --------------------------------------------------------------------- |
-| `src/`    | Native bridge (`gmsv_mcp_*.dll`) — TCP JSON bridge + `require("mcp")` |
-| `mcp/`    | Node MCP server (stdio) talking to `127.0.0.1:17905`                  |
+| Path | Role |
+| --- | --- |
+| `src/` | Native bridge (`gmsv_mcp_*.dll`) — TCP JSON bridge + `require("mcp")` |
+| `mcp/` | Bun MCP server (stdio) talking to `127.0.0.1:17905` |
 | Lua addon | Not included yet — write your own against the `mcp` library API below |
 
 ## Native library (`mcp`)
@@ -34,12 +34,12 @@ Bind address defaults to `127.0.0.1:17905`. Override with `GM_MCP_HOST` / `GM_MC
 
 Copy the matching **server** module into `garrysmod/lua/bin`:
 
-| GMod branch | OS      | Module                 |
-| ----------- | ------- | ---------------------- |
-| x64         | Linux   | `gmsv_mcp_linux64.dll` |
-| x32         | Linux   | `gmsv_mcp_linux.dll`   |
-| x64         | Windows | `gmsv_mcp_win64.dll`   |
-| x32         | Windows | `gmsv_mcp_win32.dll`   |
+| GMod branch | OS | Module |
+| --- | --- | --- |
+| x64 | Linux | `gmsv_mcp_linux64.dll` |
+| x32 | Linux | `gmsv_mcp_linux.dll` |
+| x64 | Windows | `gmsv_mcp_win64.dll` |
+| x32 | Windows | `gmsv_mcp_win32.dll` |
 
 ## Building
 
@@ -72,34 +72,42 @@ nix develop               # cmake, ninja, gcc, clangd, bun
 
 Published to GitHub Packages as [`@unknown-gd/gm-mcp`](https://github.com/unknown-gd/gm_mcp/pkgs/npm/gm-mcp).
 
-```sh
-# Install from GitHub Packages
-echo "@unknown-gd:registry=https://npm.pkg.github.com" >> .npmrc
-# auth: //npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
-bun add -g @unknown-gd/gm-mcp@next
+GitHub Packages **requires auth** even for public packages. Put this in `~/.npmrc`:
+
+```ini
+@unknown-gd:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT
 ```
 
-Local development:
+The token needs `read:packages` (and `repo` if the package is from a private repo).
 
-```sh
-nix develop .#mcp          # Bun shell in mcp/
-# or:
-cd mcp && bun install
-bun run dev                # local stdio server
-bun test
-bun run build
-
-nix build .#mcp            # → result/bin/gm-mcp
-nix run .#mcp
-```
-
-Point your MCP client at the package or a local checkout:
+Then configure your MCP client:
 
 ```json
 {
   "command": "bunx",
-  "args": ["--registry=https://npm.pkg.github.com", "@unknown-gd/gm-mcp@next"]
+  "args": [
+    "--bun",
+    "--package",
+    "@unknown-gd/gm-mcp@next",
+    "gm-mcp"
+  ]
 }
+```
+
+Or after a global install (`bun add -g @unknown-gd/gm-mcp@next`):
+
+```json
+{
+  "command": "gm-mcp"
+}
+```
+
+Local development (no registry):
+
+```sh
+cd mcp && bun install
+bun run dev
 ```
 
 ```json

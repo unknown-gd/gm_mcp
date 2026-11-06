@@ -10,14 +10,14 @@
   },
   "type": "module",
   "bin": {
-    "gm-mcp": "dist/server.js"
+    "gm-mcp": "./dist/server.js"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "bun run server.ts",
-    "build": "bun build ./server.ts --outdir dist --target bun --packages external",
+    "build": "bun build ./server.ts --outfile dist/server.js --target bun",
     "start": "bun run dist/server.js",
     "test": "bun test",
     "prepublishOnly": "bun run build"
