@@ -16,7 +16,6 @@
         {
           stdenv,
           cmake,
-          nlohmann_json,
           lib,
           pnameSuffix ? "",
           metaPlatforms ? lib.platforms.linux,
@@ -28,7 +27,6 @@
           src = lib.cleanSource ./.;
 
           nativeBuildInputs = [ cmake ];
-          buildInputs = [ nlohmann_json ];
 
           cmakeBuildType = "Release";
 
@@ -115,7 +113,6 @@
               pkgs.ninja
               pkgs.gcc
               pkgs.pkgsi686Linux.gcc
-              pkgs.nlohmann_json
               clangdForNix
               pkgs.clang-tools
               pkgs.bun

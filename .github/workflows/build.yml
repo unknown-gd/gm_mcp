@@ -15,28 +15,36 @@ concurrency:
 
 jobs:
   linux:
-    name: Linux (${{ matrix.package }})
+    name: Linux (${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        package: [linux64, linux32]
+        target: [linux64, linux32]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+          if [ "${{ matrix.target }}" = "linux32" ]; then
+            sudo apt-get install -y g++-multilib
+          fi
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.target }}
 
       - name: Build
-        run: nix build ".#${{ matrix.package }}" --print-build-logs
+        run: cmake --build --preset ${{ matrix.target }}
 
       - name: Upload modules
         uses: actions/upload-artifact@v4
         with:
-          name: gm_mcp-${{ matrix.package }}
-          path: result/lib/gmsv_mcp_*.dll
+          name: gm_mcp-${{ matrix.target }}
+          path: build/${{ matrix.target }}/gmsv_mcp_*.dll
           if-no-files-found: error
 
   windows:

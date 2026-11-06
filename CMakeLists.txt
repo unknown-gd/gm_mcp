@@ -53,19 +53,11 @@ endif()
 include(CheckIPOSupported)
 check_ipo_supported(RESULT gm_mcp_ipo_supported OUTPUT gm_mcp_ipo_error)
 
-find_package(nlohmann_json 3.11 QUIET)
-if(NOT nlohmann_json_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-        json
-        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-        URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    )
-    set(JSON_BuildTests OFF CACHE INTERNAL "")
-    set(JSON_Install OFF CACHE INTERNAL "")
-    FetchContent_MakeAvailable(json)
-endif()
+add_library(nlohmann_json INTERFACE)
+target_include_directories(nlohmann_json INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party"
+)
+add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
 
 set(GM_MCP_SOURCES
     src/mcp.cpp

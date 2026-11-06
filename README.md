@@ -43,20 +43,11 @@ Copy the matching **server** module into `garrysmod/lua/bin`:
 
 ## Building
 
-### Nix (flake) — Linux x64 / x32
-
-```sh
-nix build                 # linux64 + linux32 → result/lib/
-nix build .#linux64
-nix build .#linux32
-nix develop               # cmake, ninja, gcc, i686 toolchain, clangd, node
-```
-
 ### CMake presets
 
 ```sh
 cmake --preset linux64 && cmake --build --preset linux64
-cmake --preset linux32 && cmake --build --preset linux32
+cmake --preset linux32 && cmake --build --preset linux32   # needs g++-multilib
 
 # Windows — MSVC Developer shell + Ninja
 cmake --preset win64 && cmake --build --preset win64
@@ -68,6 +59,13 @@ Or:
 ```sh
 cmake -B build -G Ninja -DGM_MCP_TARGET=linux64|linux32|win64|win32 -DCMAKE_BUILD_TYPE=Release
 cmake --build build
+```
+
+### Optional: Nix flake (local)
+
+```sh
+nix build .#linux64
+nix develop               # cmake, ninja, gcc, clangd, bun
 ```
 
 ## MCP server (Bun)
