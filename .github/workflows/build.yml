@@ -26,19 +26,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build tools
+      - name: Install Ninja
+        run: |
+          curl -fsSL "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip" -o /tmp/ninja.zip
+          sudo unzip -o /tmp/ninja.zip -d /usr/local/bin
+          rm /tmp/ninja.zip
+          ninja --version
+          cmake --version
+
+      - name: Install 32-bit toolchain
+        if: matrix.target == 'linux32'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build g++
-          if [ "${{ matrix.target }}" = "linux32" ]; then
-            sudo apt-get install -y g++-multilib
-          fi
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            gcc-multilib \
+            g++-multilib
 
       - name: Configure
         run: cmake --preset ${{ matrix.target }}
 
       - name: Build
-        run: cmake --build --preset ${{ matrix.target }}
+        run: cmake --build --preset ${{ matrix.target }} --parallel
 
       - name: Upload modules
         uses: actions/upload-artifact@v4
