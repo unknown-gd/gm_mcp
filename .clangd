@@ -1,0 +1,8 @@
+# NixOS: clangd must query the gcc-wrapper to discover libstdc++/glibc
+# include paths. Pass the same pattern via clangd --query-driver (Cursor:
+# "clangd.arguments"), or enter the flake shell which sets CLANGD_FLAGS.
+CompileFlags:
+  CompilationDatabase: build/linux64
+  Add:
+    - -std=c++17
+    - -Isrc

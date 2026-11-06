@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Zed requires an absolute clangd path to pass --query-driver. This wrapper
+# resolves the flake's clangd (already includes --query-driver for nix gcc).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CACHE_DIR="$ROOT/.cache"
+CACHE_BIN="$CACHE_DIR/clangd-bin"
+
+resolve_clangd() {
+  if [[ -n "${GM_MCP_CLANGD:-}" && -x "${GM_MCP_CLANGD}" ]]; then
+    printf '%s\n' "${GM_MCP_CLANGD}"
+    return
+  fi
+  nix --extra-experimental-features 'nix-command flakes' develop "$ROOT" -c \
+    bash -c 'readlink -f "$(command -v clangd)"'
+}
+
+if [[ ! -e "$CACHE_BIN" ]]; then
+  mkdir -p "$CACHE_DIR"
+  ln -sfn "$(resolve_clangd)" "$CACHE_BIN"
+fi
+
+# Drop stale symlink after nix GC / flake update.
+if [[ ! -e "$CACHE_BIN" ]]; then
+  ln -sfn "$(resolve_clangd)" "$CACHE_BIN"
+fi
+
+exec "$CACHE_BIN" "$@"

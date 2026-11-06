@@ -66,3 +66,13 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# MCP server (Bun)
+mcp/node_modules/
+mcp/dist/
+
+# Editor / local
+.zed/
+compile_commands.json
+result
+

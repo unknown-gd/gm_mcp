@@ -1,0 +1,40 @@
+{
+  "name": "@unknown-gd/gm-mcp",
+  "version": "0.1.0",
+  "author": "unknown-gd",
+  "license": "GPL-3.0-or-later",
+  "description": "Model Context Protocol server for Garry's Mod",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unknown-gd/gm_mcp.git"
+  },
+  "type": "module",
+  "bin": {
+    "gm-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "bun run server.ts",
+    "build": "bun build ./server.ts --outdir dist --target bun --packages external",
+    "start": "bun run dist/server.js",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.8.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 16,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "linux64",
+      "displayName": "Linux x64 (GMod 64-bit)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "GM_MCP_TARGET": "linux64"
+      }
+    },
+    {
+      "name": "linux32",
+      "displayName": "Linux x86 (GMod 32-bit)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux32",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "GM_MCP_TARGET": "linux32",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_CXX_FLAGS": "-m32"
+      }
+    },
+    {
+      "name": "win64",
+      "displayName": "Windows x64 (MSVC + Ninja)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/win64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "GM_MCP_TARGET": "win64"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "win32",
+      "displayName": "Windows x86 (MSVC + Ninja)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/win32",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "GM_MCP_TARGET": "win32"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux64", "configurePreset": "linux64" },
+    { "name": "linux32", "configurePreset": "linux32" },
+    { "name": "win64", "configurePreset": "win64" },
+    { "name": "win32", "configurePreset": "win32" }
+  ]
+}
