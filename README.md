@@ -1,6 +1,8 @@
 # gm_mcp
 
-MCP bridge for Garry's Mod — C++ server module + Bun MCP server.
+[![Build](https://github.com/unknown-gd/gm_mcp/actions/workflows/build.yml/badge.svg)](https://github.com/unknown-gd/gm_mcp/actions/workflows/build.yml)
+
+MCP bridge for Garry's Mod — C++ server module + Node MCP server.
 
 Repository: https://github.com/unknown-gd/gm_mcp
 
@@ -8,10 +10,10 @@ Inspired by [mathis1M/gmod-mcp](https://github.com/mathis1M/gmod-mcp), rewritten
 
 ## Layout
 
-| Path | Role |
-| --- | --- |
-| `src/` | Native bridge (`gmsv_mcp_*.dll`) — TCP JSON bridge + `require("mcp")` |
-| `mcp/` | Bun MCP server (stdio) talking to `127.0.0.1:17905` |
+| Path      | Role                                                                  |
+| --------- | --------------------------------------------------------------------- |
+| `src/`    | Native bridge (`gmsv_mcp_*.dll`) — TCP JSON bridge + `require("mcp")` |
+| `mcp/`    | Bun MCP server (stdio) talking to `127.0.0.1:17905`                   |
 | Lua addon | Not included yet — write your own against the `mcp` library API below |
 
 ## Native library (`mcp`)
@@ -38,12 +40,12 @@ Bind address defaults to `127.0.0.1:17905`. Override with `GM_MCP_HOST` / `GM_MC
 
 Copy the matching **server** module into `garrysmod/lua/bin`:
 
-| GMod branch | OS | Module |
-| --- | --- | --- |
-| x64 | Linux | `gmsv_mcp_linux64.dll` |
-| x32 | Linux | `gmsv_mcp_linux.dll` |
-| x64 | Windows | `gmsv_mcp_win64.dll` |
-| x32 | Windows | `gmsv_mcp_win32.dll` |
+| GMod branch | OS      | Module                 |
+| ----------- | ------- | ---------------------- |
+| x64         | Linux   | `gmsv_mcp_linux64.dll` |
+| x32         | Linux   | `gmsv_mcp_linux.dll`   |
+| x64         | Windows | `gmsv_mcp_win64.dll`   |
+| x32         | Windows | `gmsv_mcp_win32.dll`   |
 
 ## Building
 
@@ -89,13 +91,8 @@ Then configure your MCP client:
 
 ```json
 {
-  "command": "bunx",
-  "args": [
-    "--bun",
-    "--package",
-    "@unknown-gd/gm-mcp@next",
-    "gm-mcp"
-  ]
+    "command": "bunx",
+    "args": ["--bun", "--package", "@unknown-gd/gm-mcp@next", "gm-mcp"]
 }
 ```
 
@@ -103,7 +100,7 @@ Or after a global install (`bun add -g @unknown-gd/gm-mcp@next`):
 
 ```json
 {
-  "command": "gm-mcp"
+    "command": "gm-mcp"
 }
 ```
 
@@ -116,8 +113,8 @@ bun run dev
 
 ```json
 {
-  "command": "bun",
-  "args": ["/abs/path/to/gm_mcp/mcp/server.ts"]
+    "command": "bun",
+    "args": ["/abs/path/to/gm_mcp/mcp/server.ts"]
 }
 ```
 
