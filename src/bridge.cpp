@@ -286,12 +286,23 @@ void Bridge::queue_command(Command command) {
 }
 
 std::optional<Command> Bridge::poll_command() {
-    std::lock_guard<std::mutex> lock(command_mutex_);
-    if (commands_.empty()) {
-        return std::nullopt;
+    Command command;
+    {
+        std::lock_guard<std::mutex> lock(command_mutex_);
+        if (commands_.empty()) {
+            return std::nullopt;
+        }
+        command = std::move(commands_.front());
+        commands_.pop_front();
     }
-    Command command = std::move(commands_.front());
-    commands_.pop_front();
+
+    if (command.request_id) {
+        std::lock_guard<std::mutex> lock(exec_mutex_);
+        if (exec_pending_.find(*command.request_id) != exec_pending_.end()) {
+            active_exec_id_ = *command.request_id;
+        }
+    }
+
     return command;
 }
 
@@ -304,6 +315,9 @@ void Bridge::complete_exec(const std::string &request_id, bool ok, std::string p
     std::shared_ptr<PendingSlot> slot;
     {
         std::lock_guard<std::mutex> lock(exec_mutex_);
+        if (active_exec_id_ && *active_exec_id_ == request_id) {
+            active_exec_id_.reset();
+        }
         const auto it = exec_pending_.find(request_id);
         if (it == exec_pending_.end()) {
             return;
@@ -319,6 +333,43 @@ void Bridge::complete_exec(const std::string &request_id, bool ok, std::string p
         slot->done = true;
     }
     slot->cv.notify_all();
+}
+
+bool Bridge::report_error(std::string message) {
+    std::string request_id;
+    {
+        std::lock_guard<std::mutex> lock(exec_mutex_);
+        if (!active_exec_id_) {
+            return false;
+        }
+        request_id = *active_exec_id_;
+    }
+    return report_error(request_id, std::move(message));
+}
+
+bool Bridge::report_error(const std::string &request_id, std::string message) {
+    std::shared_ptr<PendingSlot> slot;
+    {
+        std::lock_guard<std::mutex> lock(exec_mutex_);
+        if (active_exec_id_ && *active_exec_id_ == request_id) {
+            active_exec_id_.reset();
+        }
+        const auto it = exec_pending_.find(request_id);
+        if (it == exec_pending_.end()) {
+            return false;
+        }
+        slot = it->second;
+        exec_pending_.erase(it);
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(slot->mutex);
+        slot->result.ok = false;
+        slot->result.payload = std::move(message);
+        slot->done = true;
+    }
+    slot->cv.notify_all();
+    return true;
 }
 
 void Bridge::complete_screenshot(const std::string &request_id,
@@ -354,6 +405,7 @@ void Bridge::fail_pending(std::string_view message) {
 
     {
         std::lock_guard<std::mutex> lock(exec_mutex_);
+        active_exec_id_.reset();
         for (auto &entry : exec_pending_) {
             slots.push_back(entry.second);
         }

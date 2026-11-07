@@ -23,12 +23,16 @@ local status = mcp.getStatus() -- { connected, message }
 mcp.setStatus(true, "Garry's Mod is connected.")
 local command = mcp.pollCommand() -- table or nil
 mcp.respondLua(requestId, ok, payload)
+mcp.respondError(message)                -- fail active waiting exec (console errors)
+mcp.respondError(requestId, message)     -- fail a specific waiting exec
 mcp.respondScreenshot(requestId, ok, jpeg_or_error)
 mcp.isRunning()
 mcp.shutdown()
 ```
 
 `pollCommand()` returns fields: `tool`, `state`, `code`, `target`, `classFilter`, `customCheck`, `limit`, `requestId`, `returnResult`.
+
+`respondError` returns `true` if a waiting MCP request was notified. Use it from a console/error hook instead of `respondLua(id, false, …)`.
 
 Bind address defaults to `127.0.0.1:17905`. Override with `GM_MCP_HOST` / `GM_MCP_PORT`.
 

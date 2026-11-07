@@ -154,6 +154,24 @@ int lua_respond_lua(lua_State *L) {
     return 0;
 }
 
+int lua_respond_error(lua_State *L) {
+    LuaState state(L);
+    const int top = state.get_top();
+
+    bool delivered = false;
+    if (top >= 2) {
+        std::string request_id = check_string_arg(state, 1, "respondError");
+        std::string message = check_string_arg(state, 2, "respondError");
+        delivered = mcp::Bridge::instance().report_error(request_id, std::move(message));
+    } else {
+        std::string message = check_string_arg(state, 1, "respondError");
+        delivered = mcp::Bridge::instance().report_error(std::move(message));
+    }
+
+    state.push_boolean(delivered);
+    return 1;
+}
+
 int lua_respond_screenshot(lua_State *L) {
     LuaState state(L);
     std::string request_id = check_string_arg(state, 1, "respondScreenshot");
@@ -229,6 +247,9 @@ void register_mcp_library(LuaState &state) {
 
     state.push_function(lua_respond_lua);
     state.set_field(-2, "respondLua");
+
+    state.push_function(lua_respond_error);
+    state.set_field(-2, "respondError");
 
     state.push_function(lua_respond_screenshot);
     state.set_field(-2, "respondScreenshot");

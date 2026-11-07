@@ -48,6 +48,12 @@ public:
                              std::string error);
     void fail_pending(std::string_view message);
 
+    // Fail a waiting exec with a console/runtime error (not a normal respondLua path).
+    // With request_id: that pending exec. Without: the active polled exec, if any.
+    // Returns true if a waiter was notified.
+    bool report_error(std::string message);
+    bool report_error(const std::string &request_id, std::string message);
+
     std::string handle_line(std::string_view line);
     Result handle_screenshot(const BridgeRequest &request);
 
@@ -101,6 +107,7 @@ private:
 
     std::mutex exec_mutex_;
     std::unordered_map<std::string, std::shared_ptr<PendingSlot>> exec_pending_;
+    std::optional<std::string> active_exec_id_;
     std::atomic<std::uint64_t> next_exec_id_{1};
 
     std::mutex screenshot_mutex_;
