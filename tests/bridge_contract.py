@@ -14,7 +14,12 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HARNESS = ROOT / "build" / "linux64" / "bridge_harness"
+HARNESS = Path(
+    os.environ.get(
+        "GM_MCP_BRIDGE_HARNESS",
+        str(ROOT / "build" / "linux64" / "bridge_harness"),
+    )
+)
 
 
 def exchange(port: int, request: dict, timeout: float = 1.0) -> bytes:

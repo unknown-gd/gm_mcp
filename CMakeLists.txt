@@ -142,5 +142,6 @@ if(GM_MCP_BUILD_TESTS AND NOT GM_MCP_IS_WINDOWS)
     )
     set_tests_properties(bridge_contract PROPERTIES
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        ENVIRONMENT "GM_MCP_BRIDGE_HARNESS=$<TARGET_FILE:bridge_harness>"
     )
 endif()

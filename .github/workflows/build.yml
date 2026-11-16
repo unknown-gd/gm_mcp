@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Ninja
         run: |
@@ -48,8 +48,12 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ matrix.target }} --parallel
 
+      - name: Test
+        if: matrix.target == 'linux64'
+        run: ctest --test-dir build/${{ matrix.target }} --output-on-failure
+
       - name: Upload modules
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gm_mcp-${{ matrix.target }}
           path: build/${{ matrix.target }}/gmsv_mcp_*.dll
@@ -69,7 +73,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -86,7 +90,7 @@ jobs:
         run: cmake --build --preset ${{ matrix.target }}
 
       - name: Upload modules
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gm_mcp-${{ matrix.target }}
           path: build/${{ matrix.target }}/gmsv_mcp_*.dll
@@ -105,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -116,7 +120,8 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Test
-        run: bun test
+        # Unit tests only; TCP contract needs bridge_harness from the linux64 job.
+        run: bun test server.test.ts
 
       - name: Publish to GitHub Packages
         if: github.event_name != 'pull_request'
@@ -147,7 +152,7 @@ jobs:
 
     steps:
       - name: Download modules
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: gm_mcp-*
           path: modules
