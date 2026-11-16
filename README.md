@@ -2,19 +2,34 @@
 
 [![Build](https://github.com/unknown-gd/gm_mcp/actions/workflows/build.yml/badge.svg)](https://github.com/unknown-gd/gm_mcp/actions/workflows/build.yml)
 
-MCP bridge for Garry's Mod — C++ server module + Node MCP server.
+MCP bridge for Garry's Mod — C++ server module + Bun MCP server.
 
 Repository: https://github.com/unknown-gd/gm_mcp
 
 Inspired by [mathis1M/gmod-mcp](https://github.com/mathis1M/gmod-mcp), rewritten in C++ with a `mcp` Lua library name (server modules only).
 
+## Companion Lua host
+
+**`gm_mcp` is the native IPC + MCP face.** The supported Lua host is **[Dreamwork](https://github.com/Pika-Software/dreamwork)** (`lua/dreamwork/modules/mcp.lua`): poll loop, `mcp.returnResult`, client net shuttle, screenshots, enable/exec/capture gates, and error windows.
+
+Do not expect to vendor Dreamwork into this repository — keep the split:
+
+| Layer | Owns |
+| --- | --- |
+| `gmsv_mcp_*.dll` | Listen/bind, optional token auth, queue, wait/cancel, binary screenshots |
+| Bun `@unknown-gd/gm-mcp` | MCP stdio tools, typed bridge errors, `GM_MCP_*` forwarding |
+| Dreamwork | Game-side poll/execute, realm policy, client capture, CLI |
+
+For CI / smoke without Dreamwork, see [`fixtures/minimal_host.lua`](fixtures/minimal_host.lua).
+
 ## Layout
 
-| Path      | Role                                                                  |
-| --------- | --------------------------------------------------------------------- |
-| `src/`    | Native bridge (`gmsv_mcp_*.dll`) — TCP JSON bridge + `require("mcp")` |
-| `mcp/`    | Bun MCP server (stdio) talking to `127.0.0.1:17905`                   |
-| Lua addon | Not included yet — write your own against the `mcp` library API below |
+| Path | Role |
+| --- | --- |
+| `src/` | Native bridge (`gmsv_mcp_*.dll`) — TCP JSON bridge + `require("mcp")` |
+| `mcp/` | Bun MCP server (stdio) talking to `127.0.0.1:17905` |
+| `fixtures/` | Tiny contract host (not a full product addon) |
+| `tests/` | Protocol unit tests + bridge TCP harness |
 
 ## Native library (`mcp`)
 
@@ -32,20 +47,30 @@ mcp.isRunning()
 mcp.shutdown()
 ```
 
+Dreamwork also exposes `mcp.returnResult(...)` for waiting execs (not part of the native export table).
+
 `pollCommand()` returns fields: `tool`, `state`, `code`, `target`, `classFilter`, `customCheck`, `limit`, `requestId`, `returnResult`.
 
 `respondError` returns `true` if a waiting MCP request was notified. Use it from a console/error hook instead of `respondLua(id, false, …)`.
 
-Bind address defaults to `127.0.0.1:17905`. Override with `GM_MCP_HOST` / `GM_MCP_PORT`.
+### Bind address and auth
+
+| Variable | Default | Role |
+| --- | --- | --- |
+| `GM_MCP_HOST` | `127.0.0.1` | Bridge bind / MCP client connect host |
+| `GM_MCP_PORT` | `17905` | Bridge bind / MCP client connect port |
+| `GM_MCP_TOKEN` | _(empty)_ | When set, every TCP JSON request must include matching `"token"` |
+
+Auth is optional during migration: unset token keeps old clients working. Set the same `GM_MCP_TOKEN` in the game process and the Bun MCP server when locking down localhost.
 
 Copy the matching **server** module into `garrysmod/lua/bin`:
 
-| GMod branch | OS      | Module                 |
-| ----------- | ------- | ---------------------- |
-| x64         | Linux   | `gmsv_mcp_linux64.dll` |
-| x32         | Linux   | `gmsv_mcp_linux.dll`   |
-| x64         | Windows | `gmsv_mcp_win64.dll`   |
-| x32         | Windows | `gmsv_mcp_win32.dll`   |
+| GMod branch | OS | Module |
+| --- | --- | --- |
+| x64 | Linux | `gmsv_mcp_linux64.dll` |
+| x32 | Linux | `gmsv_mcp_linux.dll` |
+| x64 | Windows | `gmsv_mcp_win64.dll` |
+| x32 | Windows | `gmsv_mcp_win32.dll` |
 
 ## Building
 
@@ -58,6 +83,13 @@ cmake --preset linux32 && cmake --build --preset linux32   # needs g++-multilib
 # Windows — MSVC Developer shell + Ninja
 cmake --preset win64 && cmake --build --preset win64
 cmake --preset win32 && cmake --build --preset win32
+```
+
+Linux builds also produce `protocol_test` and `bridge_harness` (disable with `-DGM_MCP_BUILD_TESTS=OFF`).
+
+```sh
+ctest --test-dir build/linux64
+cd mcp && bun test
 ```
 
 Or:
@@ -92,7 +124,10 @@ Then configure your MCP client:
 ```json
 {
     "command": "bunx",
-    "args": ["--bun", "--package", "@unknown-gd/gm-mcp@next", "gm-mcp"]
+    "args": ["--bun", "--package", "@unknown-gd/gm-mcp@next", "gm-mcp"],
+    "env": {
+        "GM_MCP_TOKEN": "optional-shared-secret"
+    }
 }
 ```
 
@@ -114,16 +149,21 @@ bun run dev
 ```json
 {
     "command": "bun",
-    "args": ["/abs/path/to/gm_mcp/mcp/server.ts"]
+    "args": ["/abs/path/to/gm_mcp/mcp/server.ts"],
+    "env": {
+        "GM_MCP_TOKEN": "optional-shared-secret"
+    }
 }
 ```
 
 Tools: `gmod_status`, `gmod_players`, `gmod_entities`, `exec_lua_code`, `gmod_screenshot`.
 
+Bridge failures are classified (`unavailable`, `timeout`, `unauthorized`, `bridge`) and returned with MCP `isError` instead of a soft “unavailable” for every fault.
+
 ## How it works
 
 ```text
-AI client  --stdio MCP-->  Bun MCP server  --JSON TCP :17905-->  gmsv_mcp_*.dll  <-- Lua mcp.* -->  your addon
+AI client  --stdio MCP-->  Bun MCP server  --JSON TCP :17905-->  gmsv_mcp_*.dll  <-- Lua mcp.* -->  Dreamwork
 ```
 
 ## License

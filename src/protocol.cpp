@@ -101,11 +101,16 @@ std::optional<BridgeRequest> parse_request(std::string_view raw) {
     }
     request.limit = optional_u32(root, "limit");
     request.return_result = optional_bool(root, "return_result");
+    request.token = optional_string(root, "token");
     return request;
 }
 
 std::string command_response(bool ok, std::string_view message) {
     return json{{"ok", ok}, {"message", message}}.dump();
+}
+
+std::string error_response(std::string_view error, std::string_view message) {
+    return json{{"ok", false}, {"error", error}, {"message", message}}.dump();
 }
 
 std::string status_response(bool connected, std::string_view message) {

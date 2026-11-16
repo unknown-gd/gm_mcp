@@ -2,6 +2,7 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 #if defined(_WIN32)
@@ -181,6 +182,24 @@ void Bridge::close_listen_socket() {
     }
 }
 
+void Bridge::set_auth_token(std::string token) {
+    std::lock_guard<std::mutex> lock(auth_mutex_);
+    auth_token_ = std::move(token);
+}
+
+std::string Bridge::auth_token() const {
+    std::lock_guard<std::mutex> lock(auth_mutex_);
+    return auth_token_;
+}
+
+bool Bridge::authorize(const BridgeRequest &request) const {
+    const std::string required = auth_token();
+    if (required.empty()) {
+        return true;
+    }
+    return request.token.has_value() && *request.token == required;
+}
+
 bool Bridge::start(std::string host, std::uint16_t port) {
     std::lock_guard<std::mutex> lock(lifecycle_mutex_);
     if (running_) {
@@ -189,6 +208,15 @@ bool Bridge::start(std::string host, std::uint16_t port) {
     if (!ensure_sockets()) {
         std::fprintf(stderr, "mcp: failed to initialize sockets\n");
         return false;
+    }
+
+    if (const char *token = std::getenv("GM_MCP_TOKEN")) {
+        if (token[0] != '\0') {
+            std::lock_guard<std::mutex> auth_lock(auth_mutex_);
+            if (auth_token_.empty()) {
+                auth_token_ = token;
+            }
+        }
     }
 
     const int fd = static_cast<int>(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
@@ -250,17 +278,26 @@ void Bridge::stop() {
         close_listen_socket();
     }
 
+    // Wake waiters before draining client workers, otherwise stop() blocks for
+    // the full exec/screenshot timeout while handle_client is in wait_pending.
+    clear_commands();
+    fail_pending(kDefaultStatusMessage);
+
     if (accept_thread_.joinable()) {
         accept_thread_.join();
+    }
+
+    // Detached client threads own the socket; wait until they exit after
+    // fail_pending unblocked any wait_pending calls.
+    const auto deadline = Clock::now() + std::chrono::seconds(2);
+    while (active_clients_.load(std::memory_order_acquire) > 0 && Clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     {
         std::lock_guard<std::mutex> lock(lifecycle_mutex_);
         running_ = false;
     }
-
-    clear_commands();
-    fail_pending(kDefaultStatusMessage);
 }
 
 bool Bridge::running() const {
@@ -701,15 +738,12 @@ std::string Bridge::handle_request(BridgeRequest request) {
 
 std::string Bridge::handle_line(std::string_view line) {
     const std::string trimmed = trim_copy(line);
-    if (trimmed == "{\"action\":\"status\"}") {
-        BridgeRequest request;
-        request.action = kActionStatus;
-        return handle_request(std::move(request));
-    }
-
     auto request = parse_request(trimmed);
     if (!request) {
         return "{\"error\":\"invalid request\"}";
+    }
+    if (!authorize(*request)) {
+        return error_response(kErrorUnauthorized, kUnauthorizedMessage);
     }
     if (request->action == kActionScreenshot) {
         // Screenshots are handled separately for binary framing.
@@ -737,7 +771,13 @@ void Bridge::accept_loop() {
             static_cast<int>(::accept(listen_fd_, reinterpret_cast<sockaddr *>(&client_addr),
                                       &client_len));
         if (client >= 0 && client != MCP_INVALID_SOCKET) {
-            handle_client(client);
+            // Handle each connection off the accept thread so long waits
+            // (exec / screenshot) do not serialize other clients.
+            active_clients_.fetch_add(1, std::memory_order_acq_rel);
+            std::thread([this, client] {
+                handle_client(client);
+                active_clients_.fetch_sub(1, std::memory_order_acq_rel);
+            }).detach();
             continue;
         }
 
@@ -771,7 +811,19 @@ void Bridge::handle_client(int client) {
     }
 
     auto request = parse_request(*line);
-    if (request && request->action == kActionScreenshot) {
+    if (!request) {
+        send_line(client, "{\"error\":\"invalid request\"}");
+        MCP_CLOSESOCKET(client);
+        return;
+    }
+
+    if (!authorize(*request)) {
+        send_line(client, error_response(kErrorUnauthorized, kUnauthorizedMessage));
+        MCP_CLOSESOCKET(client);
+        return;
+    }
+
+    if (request->action == kActionScreenshot) {
         const Result result = handle_screenshot(*request);
         if (result.ok) {
             const std::string header = screenshot_header(true, result.bytes.size());
@@ -787,9 +839,7 @@ void Bridge::handle_client(int client) {
         return;
     }
 
-    const std::string body = request ? handle_request(std::move(*request))
-                                     : std::string("{\"error\":\"invalid request\"}");
-    send_line(client, body);
+    send_line(client, handle_request(std::move(*request)));
     MCP_CLOSESOCKET(client);
 }
 

@@ -34,6 +34,11 @@ public:
     void stop();
     bool running() const;
 
+    // When non-empty, every TCP request must include a matching `token` field.
+    // Empty disables auth (migration default). Also read from GM_MCP_TOKEN in start().
+    void set_auth_token(std::string token);
+    std::string auth_token() const;
+
     void set_status(bool connected, std::string message);
     void get_status(bool &connected, std::string &message) const;
 
@@ -73,6 +78,7 @@ private:
     void close_listen_socket();
     void accept_loop();
     void handle_client(int client);
+    bool authorize(const BridgeRequest &request) const;
 
     std::string handle_request(BridgeRequest request);
 
@@ -121,6 +127,11 @@ private:
     std::uint16_t bind_port_ = kDefaultBindPort;
     int listen_fd_ = -1;
     std::thread accept_thread_;
+
+    mutable std::mutex auth_mutex_;
+    std::string auth_token_;
+
+    std::atomic<int> active_clients_{0};
 };
 
 } // namespace mcp

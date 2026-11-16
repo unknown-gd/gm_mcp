@@ -116,3 +116,31 @@ install(TARGETS mcp_module
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib
 )
+
+option(GM_MCP_BUILD_TESTS "Build protocol unit tests and bridge harness" ON)
+
+if(GM_MCP_BUILD_TESTS AND NOT GM_MCP_IS_WINDOWS)
+    add_library(gm_mcp_bridge_core STATIC
+        src/bridge.cpp
+        src/protocol.cpp
+    )
+    target_include_directories(gm_mcp_bridge_core PUBLIC src)
+    target_link_libraries(gm_mcp_bridge_core PUBLIC nlohmann_json::nlohmann_json pthread)
+    target_compile_options(gm_mcp_bridge_core PRIVATE -Wall -Wextra -Wpedantic)
+
+    add_executable(protocol_test tests/protocol_test.cpp)
+    target_link_libraries(protocol_test PRIVATE gm_mcp_bridge_core)
+
+    add_executable(bridge_harness tests/bridge_harness.cpp)
+    target_link_libraries(bridge_harness PRIVATE gm_mcp_bridge_core)
+
+    enable_testing()
+    add_test(NAME protocol_test COMMAND protocol_test)
+    add_test(
+        NAME bridge_contract
+        COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/bridge_contract.py
+    )
+    set_tests_properties(bridge_contract PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()

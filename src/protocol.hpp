@@ -45,14 +45,19 @@ struct BridgeRequest {
     std::optional<std::string> custom_check;
     std::optional<std::uint32_t> limit;
     std::optional<bool> return_result;
+    std::optional<std::string> token;
 };
 
 std::optional<BridgeRequest> parse_request(std::string_view raw);
 
 std::string command_response(bool ok, std::string_view message);
+std::string error_response(std::string_view error, std::string_view message);
 std::string status_response(bool connected, std::string_view message);
 std::string exec_result_response(bool ok, std::string_view payload_or_error);
 std::string screenshot_header(bool ok, std::size_t size, std::string_view message = {});
+
+inline constexpr const char *kErrorUnauthorized = "unauthorized";
+inline constexpr const char *kUnauthorizedMessage = "Invalid or missing GM_MCP_TOKEN.";
 
 std::string trim_copy(std::string_view value);
 bool is_broadcast_target(std::string_view target);
